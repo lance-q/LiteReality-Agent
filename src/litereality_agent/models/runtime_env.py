@@ -22,9 +22,10 @@ from litereality_agent import REPO_ROOT
 
 LAUNCHER_DIR = Path(__file__).resolve().parent
 # The clones and the downloaded weights are DATA, not part of the package: they live at the
-# CHECKOUT root (which `.gitignore` already excludes), never inside src/. Deriving them from
-# `__file__` would follow the code into the wheel and download gigabytes into site-packages.
-THIRD_PARTY = REPO_ROOT
+# checkout's `backends/` directory (which `.gitignore` already excludes), never inside src/.
+# Deriving them from `__file__` would follow the code into the wheel and download gigabytes into
+# site-packages.
+THIRD_PARTY = REPO_ROOT / "backends"
 TRELLIS2_DIR = THIRD_PARTY / "TRELLIS.2"
 WEIGHTS_DIR = Path(os.environ.get("LITEREALITY_WEIGHTS", THIRD_PARTY / "weights")).resolve()
 

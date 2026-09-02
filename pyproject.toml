@@ -32,7 +32,7 @@ dependencies = [
     "trimesh>=4.0",
     "opencv-python",
     "tqdm",
-    "open3d",
+    "open3d==0.18.0",
     # QC true-mesh collision. NOT optional: publish runs `room_qc.correct` on every default run and
     # only records a warning if it exits non-zero, so a missing FCL turned the deterministic clash
     # gate into a silent no-op. Prebuilt wheels exist for every interpreter and platform we support,
@@ -72,8 +72,10 @@ exclude = [
     "/.mypy_cache",
     "/.pytest_cache",
     "/.ruff_cache",
+    "/.tools",
     "/.uv-cache",
     "/.venv",
+    "/backends",
     "/data",
     "/dist",
     "/run",
@@ -85,7 +87,7 @@ exclude = [
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
-    "pytest>=8.4.0",
+    "pytest>=8.4.0,<9",
     "pytest-xdist>=3.8.0",
     "ruff>=0.11.0",
 ]
