@@ -106,10 +106,14 @@ def estimate_uniform_scale_from_rgbd_dimensions(
         raise ValueError("source and RGB-D dimensions must each have shape (3,)")
     if not np.isfinite(source).all() or not np.isfinite(target).all():
         raise ValueError("source and RGB-D dimensions must be finite")
-    if np.any(source <= 1e-8) or np.any(target <= 0):
-        raise ValueError("source and RGB-D dimensions must be strictly positive")
-    axis_ratios = target / source
-    return float(np.median(axis_ratios)), axis_ratios
+    if np.any(source <= 1e-8) or np.any(target < 0):
+        raise ValueError("source dimensions must be positive and RGB-D dimensions non-negative")
+    valid_axes = target > 1e-8
+    if not np.any(valid_axes):
+        raise ValueError("RGB-D dimensions contain no observable positive extent")
+    axis_ratios = np.full(3, np.nan, dtype=np.float64)
+    axis_ratios[valid_axes] = target[valid_axes] / source[valid_axes]
+    return float(np.median(axis_ratios[valid_axes])), axis_ratios
 
 
 def validate_shape_preserving_linear_transform(

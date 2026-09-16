@@ -21,6 +21,18 @@ def _tensor_json(value):
     return np.asarray(value).tolist()
 
 
+def prepare_sam3d_input(
+    image: np.ndarray, mask: np.ndarray, *, scanner_upright: bool
+) -> tuple[np.ndarray, np.ndarray]:
+    """Keep image/mask registered and optionally rotate scanner pixels 90 degrees clockwise."""
+    if image.shape[:2] != mask.shape:
+        raise ValueError(f"SAM3D mask {mask.shape} must exactly match image {image.shape[:2]}")
+    if scanner_upright:
+        image = np.rot90(image, k=3).copy()
+        mask = np.rot90(mask, k=3).copy()
+    return image, mask
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sam3d-repo", type=Path, required=True)
@@ -29,6 +41,11 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--scanner-upright",
+        action="store_true",
+        help="rotate landscape LiteReality Scanner pixels 90 degrees clockwise before inference",
+    )
     args = parser.parse_args()
     output_glb = args.output_dir / "object.glb"
     success_path = args.output_dir / "success.json"
@@ -38,8 +55,7 @@ def main() -> int:
     with Image.open(args.image) as image_file, Image.open(args.mask) as mask_file:
         image = np.asarray(image_file.convert("RGB"), dtype=np.uint8)
         mask = np.asarray(mask_file.convert("L")) > 0
-    if image.shape[:2] != mask.shape:
-        raise ValueError(f"SAM3D mask {mask.shape} must exactly match image {image.shape[:2]}")
+    image, mask = prepare_sam3d_input(image, mask, scanner_upright=args.scanner_upright)
     if not mask.any():
         raise ValueError("SAM3D mask is empty")
     sys.path.insert(0, str(args.sam3d_repo / "notebook"))
@@ -57,6 +73,12 @@ def main() -> int:
         "image": str(args.image.resolve()),
         "mask": str(args.mask.resolve()),
         "seed": args.seed,
+        "input_orientation": (
+            "LiteReality Scanner pixels rotated 90 degrees clockwise"
+            if args.scanner_upright
+            else "source pixel orientation unchanged"
+        ),
+        "inference_image_size": [int(image.shape[1]), int(image.shape[0])],
         "sam3d_coordinate_system": "canonical object-local GLB, Y-up, arbitrary scale",
         "predicted_local_to_camera": {
             "quaternion_wxyz": _tensor_json(output["rotation"]),

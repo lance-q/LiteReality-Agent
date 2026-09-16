@@ -15,6 +15,12 @@ def main() -> int:
     parser.add_argument("--sam3d-repo", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--scanner-upright",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="rotate each LiteReality Scanner image and mask 90 degrees clockwise",
+    )
     args = parser.parse_args()
     manifest = json.loads(args.objects_manifest.read_text())
     worker = Path(__file__).with_name("sam3d_worker.py")
@@ -35,6 +41,8 @@ def main() -> int:
         ]
         if args.force:
             command.append("--force")
+        if args.scanner_upright:
+            command.append("--scanner-upright")
         print(
             f"{item['object_id']}: frame {best['frame_id']} detection "
             f"{best['detection_id']}"

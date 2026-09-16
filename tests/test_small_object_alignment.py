@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import trimesh
 
+from litereality_agent.small_object_pipeline.finalize_objects import _limit_center_correction
 from litereality_agent.small_object_pipeline.object_alignment import (
     align_mesh_to_world_anchor,
     alignment_diagnostics_dict,
@@ -14,6 +15,15 @@ from litereality_agent.small_object_pipeline.object_alignment import (
     validate_shape_preserving_linear_transform,
 )
 from litereality_agent.small_object_pipeline.sam3d_worker import main as sam3d_worker_main
+
+
+def test_center_refinement_correction_is_conservatively_limited() -> None:
+    applied, proposed_distance, limited = _limit_center_correction(
+        np.zeros(3), np.array([0.2, 0.0, 0.0]), 0.05
+    )
+    np.testing.assert_allclose(applied, [0.05, 0.0, 0.0])
+    assert proposed_distance == 0.2
+    assert limited
 
 
 def _pairwise_distances(vertices: np.ndarray) -> np.ndarray:

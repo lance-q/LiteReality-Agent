@@ -23,7 +23,7 @@ from .segmentation import segment_boxes
 def _detect_frame(args, frame_id: int) -> dict:
     image_path = args.scan_dir / f"frame_{frame_id:05d}.jpg"
     image = Image.open(image_path).convert("RGB")
-    candidates: list[tuple[list[float], float, ImageTile | None]] = []
+    candidates: list[tuple[list[float], float, str, ImageTile | None]] = []
     sources: list[tuple[Image.Image, ImageTile | None]] = [(image, None)]
     if args.tile_width and args.tile_height:
         for tile in generate_tiles(
@@ -61,10 +61,11 @@ def _detect_frame(args, frame_id: int) -> dict:
             box[0], box[2] = max(0.0, box[0]), min(float(image.width), box[2])
             box[1], box[3] = max(0.0, box[1]), min(float(image.height), box[3])
             if box[2] > box[0] and box[3] > box[1]:
-                candidates.append((box, float(result.score), tile))
+                label = result.label.strip().lower().replace(" ", "_")
+                candidates.append((box, float(result.score), label, tile))
 
     # Cheap pre-NMS avoids sending near-identical boxes through SAM. Final dedup also uses mask IoU.
-    pre_nms: list[tuple[list[float], float, ImageTile | None]] = []
+    pre_nms: list[tuple[list[float], float, str, ImageTile | None]] = []
     from .detection import bbox_iou
 
     for candidate in sorted(candidates, key=lambda item: item[1], reverse=True):
@@ -75,11 +76,11 @@ def _detect_frame(args, frame_id: int) -> dict:
         InstanceDetection(
             frame_id=frame_id,
             detection_id=index,
-            label=args.label,
+        label=candidate[2] if args.use_detected_labels else args.label,
             score=candidate[1],
             bbox_full_image=candidate[0],
             mask_full_image=mask,
-            source_tile=candidate[2],
+            source_tile=candidate[3],
         )
         for index, (candidate, mask) in enumerate(zip(pre_nms, masks))
     ]
@@ -138,6 +139,11 @@ def main() -> int:
     parser.add_argument("--frames", nargs="+", type=int, required=True)
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--label", required=True)
+    parser.add_argument(
+        "--use-detected-labels",
+        action="store_true",
+        help="retain GroundingDINO phrase labels for multi-class detection",
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--box-threshold", type=float, default=0.15)
     parser.add_argument("--text-threshold", type=float, default=0.15)
@@ -147,11 +153,28 @@ def main() -> int:
     parser.add_argument("--tile-height", type=int)
     parser.add_argument("--tile-overlap", type=float, default=0.25)
     parser.add_argument("--segment-model", default="facebook/sam-vit-base")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--skip-invalid-frames", action="store_true")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    manifests = [_detect_frame(args, frame_id) for frame_id in args.frames]
+    manifests = []
+    failures = []
+    for frame_id in args.frames:
+        cached_manifest = args.output_dir / f"frame_{frame_id:05d}" / "detections.json"
+        if args.resume and cached_manifest.is_file():
+            manifests.append(json.loads(cached_manifest.read_text()))
+            print(f"frame {frame_id}: reused cached detections")
+            continue
+        try:
+            manifests.append(_detect_frame(args, frame_id))
+        except (OSError, ValueError) as error:
+            if not args.skip_invalid_frames:
+                raise
+            failure = {"frame_id": frame_id, "error": f"{type(error).__name__}: {error}"}
+            failures.append(failure)
+            print(f"frame {frame_id}: SKIPPED: {failure['error']}")
     (args.output_dir / "detections_manifest.json").write_text(
-        json.dumps({"frames": manifests}, indent=2) + "\n"
+        json.dumps({"frames": manifests, "failed_frames": failures}, indent=2) + "\n"
     )
     return 0
 

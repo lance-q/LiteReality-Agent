@@ -10,7 +10,41 @@ from litereality_agent.small_object_pipeline.detection import (
     generate_tiles,
 )
 from litereality_agent.small_object_pipeline.frame_selection import select_keyframes
-from litereality_agent.small_object_pipeline.object_association import associate_observations
+from litereality_agent.small_object_pipeline.object_association import (
+    associate_observations,
+    robust_observation_center,
+)
+
+
+def test_robust_center_rejects_low_quality_view() -> None:
+    observations = [
+        {
+            "frame_id": 1,
+            "world_center_m": [1.0, 2.0, 3.0],
+            "valid_depth_pixel_count": 900,
+            "valid_depth_fraction": 0.95,
+        },
+        {
+            "frame_id": 2,
+            "world_center_m": [1.2, 2.0, 3.0],
+            "valid_depth_pixel_count": 50,
+            "valid_depth_fraction": 0.2,
+        },
+    ]
+    center, diagnostics = robust_observation_center(observations)
+    np.testing.assert_allclose(center, [1.0, 2.0, 3.0])
+    assert diagnostics["inlier_frame_ids"] == [1]
+
+
+def test_robust_center_rejects_spatial_outlier_from_three_views() -> None:
+    observations = [
+        {"frame_id": 1, "world_center_m": [0.0, 0.0, 0.0]},
+        {"frame_id": 2, "world_center_m": [0.02, 0.0, 0.0]},
+        {"frame_id": 3, "world_center_m": [0.5, 0.0, 0.0]},
+    ]
+    center, diagnostics = robust_observation_center(observations)
+    np.testing.assert_allclose(center, [0.01, 0.0, 0.0])
+    assert diagnostics["inlier_frame_ids"] == [1, 2]
 
 
 def _write_frame(scan, frame_id, x_m, yaw_deg):
