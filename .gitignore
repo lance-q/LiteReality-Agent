@@ -1,0 +1,85 @@
+# This repository is a focused overlay. Ignore the surrounding upstream LiteReality-Agent
+# checkout by default, then allow only project-owned source, tests, docs, and configuration.
+/*
+!/.gitignore
+!/LICENSE
+!/README.md
+!/SMALL_OBJECT_PIPELINE.md
+!/pyproject.toml
+!/configs/
+!/scripts/
+!/src/
+!/tests/
+
+/src/*
+!/src/litereality_agent/
+/src/litereality_agent/*
+!/src/litereality_agent/small_object_pipeline/
+
+/tests/*
+!/tests/test_small_object_*.py
+
+/scripts/*
+!/scripts/install_overlay.py
+
+# External source trees when a user chooses an in-repository layout.
+/external/
+/LiteReality-Agent/
+/litereality-agent/
+/sam-3d-objects/
+/SAM3D/
+
+# Python environments and caches.
+.venv/
+venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+build/
+dist/
+*.egg-info/
+
+# Scanner data, model weights, inference caches, and generated workspaces.
+/data/
+/scans/
+/scans_uploaded/
+/run/
+/run-*/
+/output/
+/outputs/
+/cache/
+/checkpoints/
+/weights/
+/backends/
+/.tools/
+
+# Generated 3D and numerical assets. Add a narrowly scoped exception if a future tiny fixture is
+# intentionally reviewed and committed.
+*.glb
+*.gltf
+*.blend
+*.blend1
+*.ply
+*.pcd
+*.usdz
+*.usd
+*.npy
+*.npz
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+
+# Generated media, manifests, logs, and local secrets.
+/.env
+/.env.*
+*.log
+*.tmp
+*.bak
+*~
+.DS_Store
+__MACOSX/

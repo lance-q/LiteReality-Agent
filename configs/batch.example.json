@@ -1,0 +1,13 @@
+{
+  "workspace": "../results/example-room/small_objects",
+  "objects_manifest": "../results/example-room/small_objects/objects_manifest.json",
+  "sam3d_repo": "../sam-3d-objects",
+  "sam3d_python": "../sam-3d-objects/.venv/bin/python",
+  "sam3d_output_dir": "../results/example-room/small_objects/sam3d_outputs",
+  "aligned_output_dir": "../results/example-room/small_objects/aligned_objects",
+  "room_usdz": "../scans/example-room/room.usdz",
+  "blender": "/path/to/blender",
+  "scene_constraints_enabled": true,
+  "scene_constraint_diagnostics_only": true,
+  "validated_alignment_overrides": {}
+}
